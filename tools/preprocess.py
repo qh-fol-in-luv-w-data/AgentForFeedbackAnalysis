@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from langchain.tools import tool
 import json
+from langchain.schema import AIMessage
 import re
 from vnpreprocess.utils.process import preprocessing
 from langgraph.graph import MessagesState
@@ -305,20 +306,35 @@ def removeIcon (sentence):
     return prepro.strip() if prepro.strip() else None
 
 def preprocessVietnameseLanguage(state: MessagesState):
-    tool_msg = next((m for m in state["messages"] if m["role"] == "tool"), None)
-    if not tool_msg or "Đã lưu reviews tại:" not in tool_msg["content"]:
-        raise ValueError("No valid file path found in MessagesState")
-    filename = tool_msg["content"].split("Đã lưu reviews tại:")[-1].strip()
-    filename = ""
+    print ("preprocess")
+    today = date.today()
+    monday_date = today - timedelta(days=today.weekday())  # Monday=0
+    sunday_date = monday_date + timedelta(days=6)
+    messages = state.get("messages", [])
+    if not messages:
+        raise ValueError("No messages found in state")
+    last_msg = messages[-1]
+    if isinstance(last_msg, AIMessage):
+        filename = last_msg.content  
+    else:
+        raise ValueError("Last message is not an AIMessage containing the path")
+
     with open (filename, "r", encoding = "utf-8") as f:
         data = json.load (f)
     contents = [item['content'] for item in data]
     processed = [removeBadWord(removeTeencode(removeIcon(sentence))) for sentence in contents]
-    output_filename = f"/home/hqvu/Agent_analysis/data/processed/reviews_processed_{seven_days_ago}_to_{today}.json"
+    output_filename = f"/home/hqvu/Agent_analysis/data/preprocess/reviews_processed_{monday_date.strftime('%Y%m%d')}_to_{sunday_date.strftime('%Y%m%d')}.json"
     with open(output_filename, "w", encoding="utf-8") as f:
         json.dump(processed, f, ensure_ascii=False, indent=2)
+        return {
+        "messages": [
+                {"role": "assistant",
+                "content": f"{output_filename}",
+                }
+        ]
+    }
 
 
     
 
-preprocessVietnameseLanguage()
+# preprocessVietnameseLanguage()

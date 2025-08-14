@@ -10,6 +10,7 @@ MAX_PAGES = 50
 SLEEP_BETWEEN = 1.0
 RETRY_COUNT = 3
 def crawl_app_store_reviews_tool ():
+    print ('app store')
     """ Crawl data with app store with APP_ID is thre app id of the app store.
     """
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -90,6 +91,7 @@ def crawl_app_store_reviews_tool ():
         json.dump(all_reviews, f, ensure_ascii=False, indent=2)
     return output_path
 def crawl_ch_play():
+    print ("ch play")
     app_id = "com.garena.game.kgvn"
     vn_tz = timezone(timedelta(hours=7))
     today = date.today()
@@ -132,7 +134,7 @@ def crawl_ch_play():
 
 
 
-def fetch():
+def fetch(state):
     today = date.today()
     monday_date = today - timedelta(days=today.weekday())  # Monday=0
     sunday_date = monday_date + timedelta(days=6)
@@ -155,8 +157,8 @@ def fetch():
 
     return {
         "messages": [
-            {"path": merged_path}
+                {"role": "assistant",
+                "content": f"{merged_path}",
+                }
         ]
     }
-
-fetch()
