@@ -3,13 +3,10 @@ from google_play_scraper import Sort, reviews
 from datetime import datetime, timedelta, timezone, date
 import json, os, time
  
-@tool("crawl_google_play_weekly", return_direct=True)
-def crawl_weekly_reviews_tool(app_id: str) -> str:
+# @tool("crawl_google_play_weekly", return_direct=True)
+def crawl_ch_play(app_id: str):
     """
-    Crawl review của 1 app Google Play trong tuần chỉ định.
-    - app_id: ID của app trên Google Play
-    - monday_str: ngày thứ 2 đầu tuần, format dd-mm-YYYY
-    - out_dir: thư mục lưu file
+    Crawl comment of specific app from google play with app_id is the id of the app in ch play.
     """
     vn_tz = timezone(timedelta(hours=7))
     today = date.today()
