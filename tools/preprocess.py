@@ -5,7 +5,6 @@ from langchain.schema import AIMessage
 import re
 from vnpreprocess.utils.process import preprocessing
 from langgraph.graph import MessagesState
-from langgraph.graph import MessagesState
 badwords = [
     "địt",
     "dit",
@@ -270,7 +269,10 @@ badwords = [
     "bà cha mày",
     "cmn",
     "cmnl",
-    "lồn"
+    "lồn", 
+    "duma",
+    "vc",
+    "cc"
 ]
 def removeBadWord (sentence):
     if not sentence:
@@ -321,11 +323,21 @@ def preprocessVietnameseLanguage(state: MessagesState):
 
     with open (filename, "r", encoding = "utf-8") as f:
         data = json.load (f)
-    contents = [item['content'] for item in data]
-    processed = [removeBadWord(removeTeencode(removeIcon(sentence))) for sentence in contents]
+    processed_data = []
+    for item in data:
+        new_item = dict(item)
+        content = new_item.get("content")
+        processed_content = removeBadWord(
+            removeTeencode(
+                removeIcon(content)
+            )
+        )
+        if processed_content and processed_content.strip():
+            new_item["content"] = processed_content
+            processed_data.append(new_item)
     output_filename = f"/home/hqvu/Agent_analysis/data/preprocess/reviews_processed_{monday_date.strftime('%Y%m%d')}_to_{sunday_date.strftime('%Y%m%d')}.json"
     with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(processed, f, ensure_ascii=False, indent=2)
+        json.dump(processed_data, f, ensure_ascii=False, indent=2)
         return {
         "messages": [
                 {"role": "assistant",

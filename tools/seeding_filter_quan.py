@@ -33,7 +33,7 @@ def filter_seeding(df, min_content_length=20, pr_keywords=None, similarity_thres
     """
     if pr_keywords is None:
         pr_keywords = ['tuyệt vời nhất', 'hay nhất thế giới', 'game đỉnh cao',
-                       'perfect game', 'best game ever']
+                       'perfect game', 'best game ever']  
 
     df = df.copy()
     df['content'] = df['content'].fillna("").astype(str)

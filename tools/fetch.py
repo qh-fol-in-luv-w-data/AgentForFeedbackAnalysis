@@ -71,11 +71,10 @@ def crawl_app_store_reviews_tool ():
     
             if monday_date <= review_day <= sunday_date:
                 all_reviews.append({
-                    "author": entry.get("author", {}).get("name", {}).get("label", ""),
-                    "rating": int(entry.get("im:rating", {}).get("label", 0)),
-                    "title": entry.get("title", {}).get("label", ""),
-                    "content": entry.get("content", {}).get("label", ""),
-                    "date": review_date.strftime("%Y-%m-%d %H:%M:%S %Z")
+                    "content": entry.get("title", {}).get("label", "") +" "+entry.get("content", {}).get("label", ""),
+                    "score": int(entry.get("im:rating", {}).get("label", 0)),
+                    "date": review_date.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                    "day_of_week": review_date.strftime("%a")
                 })
     
         if stop_crawl:
@@ -98,8 +97,6 @@ def crawl_ch_play():
     monday_date = today - timedelta(days=today.weekday())  # weekday() Monday=0
     sunday_date = monday_date + timedelta(days=6)
     monday_dt = datetime.combine(monday_date, datetime.min.time())
-
-    weekdays_vi = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
     all_reviews, cont_token = [], None
  
     while True:
@@ -115,7 +112,7 @@ def crawl_ch_play():
                     "content": r.get("content", "").strip(),
                     "score": r.get("score"),
                     "date": at_vn_date.strftime("%d/%m/%Y"),
-                    "day_of_week": weekdays_vi[at_vn_date.weekday()]
+                    "day_of_week": at_vn_date.strftime("%a")
                 })
             elif at_vn_date < monday_date:
                 stop_now = True
@@ -136,7 +133,7 @@ def crawl_ch_play():
 
 def fetch(state):
     today = date.today()
-    monday_date = today - timedelta(days=today.weekday())  # Monday=0
+    monday_date = today - timedelta(days=today.weekday()) 
     sunday_date = monday_date + timedelta(days=6)
 
     chplay = crawl_ch_play()
