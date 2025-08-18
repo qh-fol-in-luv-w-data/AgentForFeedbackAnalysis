@@ -16,7 +16,7 @@ def tokenizeAndCosineSimilarity (text):
                 duplicates.add(j)
     return list(duplicates)
 def eliminateTooShortText(text): 
-    min_length = 10
+    min_length = 30
     return [i for i, t in enumerate(text) if len(t.strip()) < min_length]
 
 def seedingFilter(state: MessagesState):

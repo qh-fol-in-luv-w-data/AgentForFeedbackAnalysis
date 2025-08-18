@@ -1,8 +1,17 @@
+import cudf
+import cupy as cp
+from cuml.cluster import KMeans
 
-from viet_badwords_filter.filter import VNBadwordsFilter
+# Create synthetic data
+X = cp.random.rand(1000, 2)
 
-filter = VNBadwordsFilter()
+# Convert to cuDF for cuML
+gdf = cudf.DataFrame.from_records(X)
 
-print(filter.is_profane("hello")) 
-print(filter.is_profane("vcl")) 
-print(filter.clean("lồn"))  
+# Fit KMeans
+kmeans = KMeans(n_clusters=3)
+kmeans.fit(gdf)
+
+# Predict cluster labels
+labels = kmeans.predict(gdf)
+print(labels)
