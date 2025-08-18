@@ -9,7 +9,8 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 from langgraph.graph import MessagesState
 from langchain.schema import AIMessage
 from transformers import AutoTokenizer, AutoModelForMaskedLM
-from sklearn.cluster import DBSCAN
+from transformers import AutoModel
+from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
 # --- Disable SSL Verification ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
  
@@ -41,39 +42,14 @@ def summarizeText(state: MessagesState):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    embeds = embedding (filename) 
+    labels = cluster (embeds)
+    for item, label in zip(data, labels):
+        item["cluster"] = int(label) 
 
-    model_name = "/home/hqvu/Agent_analysis/model" 
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    model.to(device)
-    model.eval()
-
-    max_input_length = 512
-    max_summary_length = 100
-
-    for item in data:
-        content = item.get("content", "")
-        if not content:
-            continue
-
-        inputs = tokenizer.encode(
-            content, return_tensors="pt", max_length=max_input_length, truncation=True
-        ).to(device)
-
-        summary_ids = model.generate(
-            inputs,
-            max_length=max_summary_length,
-            num_beams=5,
-            repetition_penalty=2.5,
-            length_penalty=1.0,
-            early_stopping=True
-        )
-
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-        item["summary"] = summary 
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
     return {
         "messages": [
                 {"role": "assistant",
@@ -82,30 +58,57 @@ def summarizeText(state: MessagesState):
         ]
     }
 
-def embedding(data):
-    with open(data, "r", encoding="utf-8") as f:
+def embedding(data_path):
+    with open(data_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    model_name = "/home/hqvu/Agent_analysis/phoBert" 
+
+    model_name = "/home/hqvu/Agent_analysis/phoBert"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    model.to(device)
+    model.eval()
+
     embeds = []
+
     for item in data:
         content = item.get("content", "")
         if not content:
             continue
 
-        inputs = tokenizer.encode(
-            content, return_tensors="pt", max_length=10000, truncation=True
+        inputs = tokenizer(
+            content,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=512
         ).to(device)
-        embeds = torch.stack(embeds)
-    return embeds
-    
-# def cluster (embeds):
-#     clustering = DBSCAN(eps=1.0, min_samples=2, metric='cosine')
-#     labels = clustering.fit_predict(labels = clustering.fit_predict(embeds.cpu().numpy())
-# )
-#     print (labels)
-#     return labels
 
-embedding ("/home/hqvu/Agent_analysis/data/clean/merged_reviews_20250811_to_20250817.json")
+        with torch.no_grad():
+            outputs = model(**inputs)
+            sentence_embedding = outputs.last_hidden_state.mean(dim=1).squeeze()
+            embeds.append(sentence_embedding)
+
+    if not embeds:
+        raise ValueError("No embeddings generated. Check your input data.")
+
+    embeds = torch.stack(embeds)
+    return embeds
+
+   
+
+
+def cluster(embeds):
+    n_clusters = 40
+    embeds_np = embeds.detach().cpu().numpy()
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = kmeans.fit_predict(embeds_np)
+    return labels
+    # n_clusters = 40
+    # embeds_np = embeds.detach().cpu().numpy()
+    # agg = AgglomerativeClustering(n_clusters=n_clusters, metric='cosine', linkage='average')
+    # labels = agg.fit_predict(embeds_np)
+    # return labels
+# embedding ("data/clean/merged_reviews_20250818_to_20250824.json")
