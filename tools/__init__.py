@@ -1,11 +1,11 @@
 
 from .fetch import fetch
-from .preprocess import preprocessVietnameseLanguage
+from .preprocess import preprocessEnglishLanguage
 from .seeding_filter import seedingFilter
 from .llm import summarizeText
 __all__ = [
     "fetch",
-    "preprocessVietnameseLanguage",
+    "preprocessEnglishLanguage",
     "seedingFilter",
     "summarizeText"
 ]

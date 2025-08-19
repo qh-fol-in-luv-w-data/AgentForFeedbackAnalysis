@@ -4,7 +4,8 @@ from langgraph.graph import MessagesState
 from langchain.tools import tool
 from google_play_scraper import Sort, reviews
 import json, os, time
-COUNTRY = "vn"
+COUNTRY = "us"
+APP_ID = "529479190"
 OUT_DIR = "/home/hqvu/Agent_analysis/data/raw"
 MAX_PAGES = 50
 SLEEP_BETWEEN = 1.0
@@ -29,7 +30,7 @@ def crawl_app_store_reviews_tool ():
     all_reviews = []
     
     for page in range(1, MAX_PAGES + 1):
-        url = f"https://itunes.apple.com/{COUNTRY}/rss/customerreviews/page={page}/id=1150288115/sortby=mostrecent/json"
+        url = f"https://itunes.apple.com/{COUNTRY}/rss/customerreviews/page={page}/id=529479190/sortby=mostrecent/json"
     
         for attempt in range(RETRY_COUNT):
             try:
@@ -91,7 +92,7 @@ def crawl_app_store_reviews_tool ():
     return output_path
 def crawl_ch_play():
     print ("ch play")
-    app_id = "com.garena.game.kgvn"
+    app_id = "com.supercell.clashofclans"
     vn_tz = timezone(timedelta(hours=7))
     today = date.today()
     monday_date = today - timedelta(days=today.weekday())  # weekday() Monday=0
