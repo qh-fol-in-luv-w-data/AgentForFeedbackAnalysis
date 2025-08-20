@@ -6,32 +6,19 @@ import re
 from vnpreprocess.utils.process import preprocessing
 from langgraph.graph import MessagesState
 import nltk
-from nltk.corpus import words
-from nltk.corpus import stopwords
+from nltk.corpus import words, wordnet, stopwords
 from better_profanity import profanity
 from nltk.stem import WordNetLemmatizer
 from langdetect import detect, DetectorFactory
+import string
 DetectorFactory.seed = 0
 nltk.download('stopwords')
 nltk.download('words')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+nltk.download('averaged_perceptron_tagger_eng')
 nltk.download('punkt')
 
-
-# def jaccardSimi (a, b):
-
-def CommentTermNormalization (sentence):
-    return True
-def removeStopWords (sentence):
-    if not sentence:
-        return None
-    stop_words = set(stopwords.words('english'))
-    words_in_text = sentence.split()
-    filtered_words = [word for word in words_in_text if word.lower() not in stop_words]
-
-    clean_text = ' '.join(filtered_words)
-    return clean_text
 
 def removeBadWord (sentence):
     if not sentence:
@@ -41,17 +28,15 @@ def removeBadWord (sentence):
     return clean_text
 
 
-def removeTeencode (sentence):
-    if not sentence:
-        return None
-    lang = detect(sentence)
-    if lang != 'en':
-        return None
-    lemmatizer = WordNetLemmatizer()
-    words = sentence.split()
-    lemmatized = [lemmatizer.lemmatize(w, pos='v') for w in words]
-    # Join back into a sentence
-    return " ".join(lemmatized) if lemmatized else None
+# def removeTeencode (sentence):
+    # if not sentence:
+    #     return None
+    # lang = detect(sentence)
+    # if lang != 'en':
+    #     return None
+    
+    # # Join back into a sentence
+    # return " ".join(lemmatized) if lemmatized else None
 def removeIcon (sentence):
     sentence = sentence.lower()
     if not sentence:
@@ -95,12 +80,10 @@ def preprocessEnglishLanguage(state: MessagesState):
     for item in data:
         new_item = dict(item)
         content = new_item.get("content")
-        processed_content = removeStopWords(removeBadWord(
-            removeTeencode(
-                removeIcon(content)
-            )
+        processed_content = removeBadWord(
+                    removeIcon(content)
         )
-        )
+    
         if processed_content and processed_content.strip():
             new_item["process"] = processed_content
             processed_data.append(new_item)
