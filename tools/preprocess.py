@@ -5,21 +5,10 @@ from langchain.schema import AIMessage
 import re
 from vnpreprocess.utils.process import preprocessing
 from langgraph.graph import MessagesState
-import nltk
-from nltk.corpus import words, wordnet, stopwords
+from nltk.corpus import words
 from better_profanity import profanity
-from nltk.stem import WordNetLemmatizer
-from langdetect import detect, DetectorFactory
 import string
-DetectorFactory.seed = 0
-nltk.download('stopwords')
-nltk.download('words')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
-nltk.download('averaged_perceptron_tagger_eng')
-nltk.download('punkt')
-
-
+from wordfreq import zipf_frequency
 def removeBadWord (sentence):
     if not sentence:
         return None
@@ -27,6 +16,17 @@ def removeBadWord (sentence):
     clean_text = profanity.censor(sentence, censor_char="")
     return clean_text
 
+def is_english_word(word: str) -> bool:
+    return zipf_frequency(word, "en") > 2.3
+
+def filter_english_sentences(sentences):
+    if not sentences:
+        return None
+    words = sentences.split()
+    if all(is_english_word(w.lower()) for w in words):
+        return sentences
+    else:
+        return None
 
 # def removeTeencode (sentence):
     # if not sentence:
@@ -41,10 +41,7 @@ def removeIcon (sentence):
     sentence = sentence.lower()
     if not sentence:
         return None
-    english_vocab = set(words.words())
-    words_in_text = sentence.split()
-    english_words = [word for word in words_in_text if word.lower().strip('.,!?') in english_vocab]
-    clean_text = ' '.join(english_words)
+
     emoji_pattern = re.compile("["
         "\U0001F600-\U0001F64F"  
         "\U0001F300-\U0001F5FF"  
@@ -57,7 +54,7 @@ def removeIcon (sentence):
         "\U00002600-\U000026FF"  
         "]+",
         flags=re.UNICODE)
-    prepro = emoji_pattern.sub(r'', clean_text) 
+    prepro = emoji_pattern.sub(r'', sentence) 
     return prepro.strip() if prepro.strip() else None
 
 def preprocessEnglishLanguage(state: MessagesState):
@@ -80,8 +77,9 @@ def preprocessEnglishLanguage(state: MessagesState):
     for item in data:
         new_item = dict(item)
         content = new_item.get("content")
-        processed_content = removeBadWord(
+        processed_content = filter_english_sentences(removeBadWord(
                     removeIcon(content)
+        )
         )
     
         if processed_content and processed_content.strip():
@@ -97,8 +95,3 @@ def preprocessEnglishLanguage(state: MessagesState):
                 }
         ]
     }
-
-
-    
-
-# preprocessVietnameseLanguage()

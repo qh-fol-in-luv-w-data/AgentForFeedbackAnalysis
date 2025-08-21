@@ -59,6 +59,7 @@ def summarizeText(state: MessagesState):
         item["label"] = label
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    makeReport (filename)
     return {
         "messages": [
                 {"role": "assistant",
@@ -81,7 +82,8 @@ def labelize(data_path, classifier):
         ]
     results = classifier(
         texts,
-        candidate_labels=candidate_labels
+        candidate_labels=candidate_labels,
+        multi_label=False
     )
     labels = []
     results = classifier(texts, candidate_labels, batch_size=1)
@@ -89,11 +91,23 @@ def labelize(data_path, classifier):
     # pipeline returns a list of dicts when input is a list
     for res in results:
         labels.append(res["labels"][0])   # top label only
-
     return labels
 
 def makeReport (datapath):
     with open(datapath, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    texts = [item.get("process", "") for item in data if item.get("process", "").strip()]
+    feature_requests = [item["process"] for item in data if item["label"] == "feature request"]
+    feature_requests_merged = ".".join(feature_requests)
+    cheating_or_hacking_report = [item["process"] for item in data if item["label"] == "cheating or hacking report"]
+    cheating_or_hacking_report_merged = ".".join(cheating_or_hacking_report)
+    bug_report = [item["process"] for item in data if item["label"] == "bug report" or item["label"] == "game problem" or item["label"] == "game error" or item["label"] == "game not working"]
+    bug_report_merged = ".".join(bug_report)
+    print ("Feature request")
+    print (feature_requests_merged)
+    print ("cheating")
+    print (cheating_or_hacking_report_merged)
+    print ("bug")
+    print (bug_report_merged)
+
+    
