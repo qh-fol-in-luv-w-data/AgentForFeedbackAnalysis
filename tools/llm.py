@@ -12,9 +12,6 @@ from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import TfidfVectorizer
 from collections import defaultdict
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
 # --- Disable SSL Verification ---
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
  
@@ -38,6 +35,7 @@ def summarizeText(state: MessagesState):
     last_msg = messages[-1]
     if isinstance(last_msg, AIMessage):
         filename = last_msg.content
+        SCORES = last_msg.additional_kwargs.get("average_score")
     else:
         raise ValueError("Last message is not an AIMessage containing the JSON file path") 
     with open(filename, "r", encoding="utf-8") as f:
@@ -59,11 +57,11 @@ def summarizeText(state: MessagesState):
         item["label"] = label
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    makeReport (filename)
     return {
         "messages": [
                 {"role": "assistant",
                 "content": f"{filename}",
+                "additional_kwargs" : {"average_score": SCORES}
                 }
         ]
     }
@@ -87,27 +85,9 @@ def labelize(data_path, classifier):
     )
     labels = []
     results = classifier(texts, candidate_labels, batch_size=1)
-
-    # pipeline returns a list of dicts when input is a list
     for res in results:
-        labels.append(res["labels"][0])   # top label only
+        labels.append(res["labels"][0]) 
     return labels
+ 
 
-def makeReport (datapath):
-    with open(datapath, "r", encoding="utf-8") as f:
-        data = json.load(f)
 
-    feature_requests = [item["process"] for item in data if item["label"] == "feature request"]
-    feature_requests_merged = ".".join(feature_requests)
-    cheating_or_hacking_report = [item["process"] for item in data if item["label"] == "cheating or hacking report"]
-    cheating_or_hacking_report_merged = ".".join(cheating_or_hacking_report)
-    bug_report = [item["process"] for item in data if item["label"] == "bug report" or item["label"] == "game problem" or item["label"] == "game error" or item["label"] == "game not working"]
-    bug_report_merged = ".".join(bug_report)
-    print ("Feature request")
-    print (feature_requests_merged)
-    print ("cheating")
-    print (cheating_or_hacking_report_merged)
-    print ("bug")
-    print (bug_report_merged)
-
-    

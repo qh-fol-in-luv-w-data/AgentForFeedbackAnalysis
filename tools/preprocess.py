@@ -28,15 +28,6 @@ def filter_english_sentences(sentences):
     else:
         return None
 
-# def removeTeencode (sentence):
-    # if not sentence:
-    #     return None
-    # lang = detect(sentence)
-    # if lang != 'en':
-    #     return None
-    
-    # # Join back into a sentence
-    # return " ".join(lemmatized) if lemmatized else None
 def removeIcon (sentence):
     sentence = sentence.lower()
     if not sentence:
@@ -56,7 +47,9 @@ def removeIcon (sentence):
         flags=re.UNICODE)
     prepro = emoji_pattern.sub(r'', sentence) 
     return prepro.strip() if prepro.strip() else None
-
+def getWeeklyScore (scores):
+    average_score = sum(scores) / len(scores)
+    return average_score
 def preprocessEnglishLanguage(state: MessagesState):
     print ("preprocess")
     today = date.today()
@@ -73,6 +66,9 @@ def preprocessEnglishLanguage(state: MessagesState):
 
     with open (filename, "r", encoding = "utf-8") as f:
         data = json.load (f)
+    scores = [item["score"] for item in data]
+    score = getWeeklyScore (scores)
+    print (score)
     processed_data = []
     for item in data:
         new_item = dict(item)
@@ -92,6 +88,7 @@ def preprocessEnglishLanguage(state: MessagesState):
         "messages": [
                 {"role": "assistant",
                 "content": f"{output_filename}",
+                "additional_kwargs" : {"average_score": score}
                 }
         ]
     }
