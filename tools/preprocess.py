@@ -66,6 +66,7 @@ def preprocessEnglishLanguage(state: MessagesState):
 
     with open (filename, "r", encoding = "utf-8") as f:
         data = json.load (f)
+    total = len(data)
     scores = [item["score"] for item in data]
     score = getWeeklyScore (scores)
     print (score)
@@ -88,7 +89,8 @@ def preprocessEnglishLanguage(state: MessagesState):
         "messages": [
                 {"role": "assistant",
                 "content": f"{output_filename}",
-                "additional_kwargs" : {"average_score": score}
+                "additional_kwargs" : {"average_score": score,
+                                       "total_review": total}
                 }
         ]
     }

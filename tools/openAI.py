@@ -13,6 +13,17 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from datetime import date, timedelta
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.textlabels import Label
+from reportlab.graphics.widgets.markers import makeMarker
+from collections import Counter
+import traceback
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from email.mime.text import MIMEText
+import smtplib
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -80,74 +91,128 @@ body_style = ParagraphStyle(
     spaceAfter=4,
     leftIndent=15
 )
- 
-def makeReport (results, scores):
-    for key, value in results.items():
-        try:
-            final_summary = value.get("final_summary", "")
-            positive_items = []
-            if "1. Positive aspects" in final_summary:
-                positive_split = final_summary.split("2. Negative")[0].replace("1. Positive aspects\n", "").strip()
-                positive_items = positive_split.split("\n- ")[1:] if positive_split and "\n- " in positive_split else positive_split.split("- ") if positive_split else []
-                positive_items = [item.strip() for item in positive_items if item.strip()]
-            else:
-                positive_items = ["No positive aspects recorded."]
-            negative_items = []
-            if "2. Negative aspects / bugs" in final_summary:
-                negative_section = final_summary.split("2. Negative aspects / bugs")[1].strip()
-                negative_split = negative_section.split("3. Suggestions")[0].strip() if "3. Suggestions" in negative_section else negative_section
-                negative_items = negative_split.split("\n- ")[1:] if negative_split and "\n- " in negative_split else negative_split.split("- ") if negative_split else []
-                negative_items = [item.strip() for item in negative_items if item.strip()]
-            else:
-                negative_items = ["No negative aspects or bugs recorded."]
-            suggestions_items = []
-            if "3. Suggestions" in final_summary:
-                suggestions_split = final_summary.split("3. Suggestions")[1].strip()
-                suggestions_items = suggestions_split.split("\n- ")[1:] if suggestions_split and "\n- " in suggestions_split else suggestions_split.split("- ") if suggestions_split else []
-                suggestions_items = [item.strip() for item in suggestions_items if item.strip()]
-            else:
-                suggestions_items = ["No suggestions recorded."]
-    
-            sections.append({
-                "label": key.upper(), 
-                "num_reviews": value.get("num_reviews", 0),
-                "positive": positive_items,
-                "negative": negative_items,
-                "suggestions": suggestions_items
-            })
-        except (IndexError, KeyError) as e:
-            print(f"Warning: Failed to parse section '{key}' due to error: {str(e)}. Skipping this section.")
-            continue
+def send_email_report(receiver_email, subject, body, pdf_file):
+    sender_email = os.getenv("EMAIL_SENDER")
+    sender_password = os.getenv("EMAIL_PASSWORD")  # Gmail App Password
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    with open(pdf_file, "rb") as f:
+        mime = MIMEBase("application", "octet-stream")
+        mime.set_payload(f.read())
+        encoders.encode_base64(mime)
+        mime.add_header("Content-Disposition", f"attachment; filename={os.path.basename(pdf_file)}")
+        msg.attach(mime)
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            print(f"✅ Email đã gửi đến {receiver_email}")
+    except Exception as e:
+        print(f"❌ Lỗi gửi mail: {e}")
+def format_bullet_text(text):
+    return text.replace('\n- ', '<br/>- ').replace('- ', '<br/>- ')
+
+def makeReport (dateDataPath, results, scores, total, percenPosi, percentCheat, percentFeed, percentProb):
     today = date.today()
     monday_date = today - timedelta(days=today.weekday())  # Monday=0
     sunday_date = monday_date + timedelta(days=6)
+    with open(dateDataPath, "r", encoding="utf-8") as f:
+        dateData = json.load(f)
+    day_counts = Counter(item['day_of_week'] for item in dateData)
+    WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    day_counts_complete = {day: day_counts.get(day, 0) for day in WEEKDAYS}
+
+    # # Output
+    # for day, count in day_counts_complete.items():
+    #     print(f"{day}: {count}")
+
+    drawing = Drawing(400, 200)
+
+    bar = VerticalBarChart()
+    bar.x = 50
+    bar.y = 30
+    bar.height = 125
+    bar.width = 300
+    bar.data = [list(day_counts_complete.values())]
+    
+
+    bar.strokeColor = colors.black
+
+    bar.valueAxis.valueMin = 0
+    bar.valueAxis.valueMax = max( day_counts_complete.values()) + 5  
+    bar.valueAxis.valueStep = max(1, (max( day_counts_complete.values()) // 5))
+
+    bar.categoryAxis.labels.boxAnchor = 'ne'
+    bar.categoryAxis.labels.dx = 8
+    bar.categoryAxis.labels.dy = -2
+    bar.categoryAxis.categoryNames = WEEKDAYS
+
+    drawing.add(bar)
+
+    # Optional: Add a label
+    label = Label()
+    label.setOrigin(200, 180)
+    label.boxAnchor = 'n'
+    label.setText("Number of Reviews per Day")
+    label.fontSize = 12
+    drawing.add(label)
+    story = []
+    # Add chart to story
+    
     pdf_file = f"/home/hqvu/Agent_analysis/data/report/Feedback_Analysis_{monday_date.strftime('%Y%m%d')}_to_{sunday_date.strftime('%Y%m%d')}.pdf"
     doc = SimpleDocTemplate(pdf_file, pagesize=A4, leftMargin=1*inch, rightMargin=1*inch, topMargin=1*inch, bottomMargin=1*inch)
-    story = []
   
-    story.append(Paragraph("FEEDBACK ANALYSIS", title_style))
+    story.append(Paragraph("WEEKLY FEEDBACK ANALYSIS", title_style))
     story.append(Spacer(1, 0.2*inch))
-    
-    for i, section in enumerate(sections):
-        if i > 0:  
-            story.append(PageBreak())
-        story.append(Paragraph(section["label"], section_style))
-        story.append(Paragraph(f"Number of reviews: {section['num_reviews']}", review_count_style))
-        story.append(Paragraph("[Positive] Positive Aspects", positive_style))
-        for item in section["positive"]:
-            story.append(Paragraph(f"• {item}", body_style))
-        story.append(Paragraph("[Negative] Negative Aspects / Bugs", negative_style))
-        for item in section["negative"]:
-            story.append(Paragraph(f"• {item}", body_style))
-        story.append(Paragraph("[Suggestions] Suggestions", suggestion_style))
-        for item in section["suggestions"]:
-            story.append(Paragraph(f"• {item}", body_style))
-        story.append(Spacer(1, 0.3*inch))
+    story.append (Paragraph("Hi, ", styles['Normal']))
+    story.append (Paragraph
+                   (f"I hope you're doing well! Please find below your weekly feedback analysis report for the period of {monday_date} to {sunday_date}. This report summarizes key trends, insights, and any action points identified from your customer feedback during this period.", styles['Normal']))
+    story.append(Spacer(0.5, 0.1*inch))
+    story.append(Paragraph("Overall summary of weekly feedback", section_style))
+    story.append (Paragraph(f"Total feedback received: {total}", styles['Normal']))
+    story.append(Paragraph(f"Positive feedback: {round(percenPosi, 2)} %", styles['Normal']))
+    story.append(Paragraph(f"Game problems feedback: {round(percentProb, 2)} %", styles['Normal']))
+    story.append(Paragraph(f"New feature request feedback: {round(percentFeed, 2)} %", styles['Normal']))
+    story.append(Paragraph(f"Cheating report feedback: {round(percentCheat, 2)} %", styles['Normal']))
+    story.append(Paragraph(f"Average score: {round(scores, 2)}/5", styles['Normal']))
+    story.append(drawing)
+    story.append(Spacer(0.5, 0.1*inch))
+    story.append(Paragraph("Key Trends & Insights", section_style))
+    pos_header = "**1. Positive aspects**"
+    neg_header = "**2. Negative aspects / bugs**  "
+    sug_header = "**3. Suggestions**"
+
+    pos_start = results.find(pos_header)
+    neg_start = results.find(neg_header)
+    sug_start = results.find(sug_header)
+
+    positive_text = results[pos_start + len(pos_header):neg_start].strip() if pos_start != -1 and neg_start != -1 else ""
+    negative_text = results[neg_start + len(neg_header):sug_start].strip() if neg_start != -1 and sug_start != -1 else ""
+    suggestions_text = results[sug_start + len(sug_header):].strip() if sug_start != -1 else ""
+    positive_text = format_bullet_text(positive_text)
+    negative_text = format_bullet_text(negative_text)
+    suggestions_text = format_bullet_text(suggestions_text) 
+    story.append(Paragraph("Positive aspects", suggestion_style))
+    story.append(Paragraph(positive_text, body_style))
+    story.append(Paragraph("Bugs found aspects", suggestion_style))
+    story.append(Paragraph(negative_text, body_style))
+    story.append(Paragraph("Suggestion aspects", suggestion_style))
+    story.append(Paragraph(suggestions_text, body_style))
     try:
         doc.build(story)
         print(f"PDF report generated: {pdf_file}")
+        subject = "Weekly Feedback Analysis Report"
+        body = f"Dear team,\n\nPlease find attached the weekly feedback analysis report for {monday_date} to {sunday_date}.\n\nBest regards,\nYour Bot"
+        send_email_report("hodacquan2004@gmail.com", subject, body, pdf_file)
     except Exception as e:
-        print(f"Error generating PDF: {str(e)}")
+        print(e)
+        traceback.print_exc()
     
 def format_as_bullets(texts, max_chars=4000):
     bullets = ["- " + t.replace("\n", " ").strip() for t in texts if t.strip()]
@@ -169,6 +234,7 @@ def callOpenAI (state: MessagesState):
     if isinstance(last_msg, AIMessage):
         filename = last_msg.content
         SCORES = last_msg.additional_kwargs.get("average_score")
+        total = last_msg.additional_kwargs.get("total_review")
     else:
         raise ValueError("Last message is not an AIMessage containing the JSON file path") 
     with open(filename, "r", encoding="utf-8") as f:
@@ -182,11 +248,14 @@ def callOpenAI (state: MessagesState):
     ("positive feedback", posi),
     ("feature request", featureRequest)
     ]
-
+    percenPosi = (len (posi)/len (data))* 100
+    percenProblem = (len (gameProblem)/ len(data))* 100
+    percenCheat = (len (cheating)/ len(data))* 100
+    percenFeature = (len (featureRequest)/ len(data))* 100
     BATCH_SIZE = 30
     MAP_MAX_CHARS, REDUCE_MAX_CHARS = 4000, 4000
     MAP_MAX_TOKENS, REDUCE_MAX_TOKENS = 220, 280
-    results = {}
+    results = []
     for label, texts in tqdm(cluster, desc="Summarizing (OpenAI GPT)"):
         mini_summaries = []
 
@@ -208,20 +277,14 @@ def callOpenAI (state: MessagesState):
 
         final = run_openai(make_reduce_prompt(reduce_inp), client,  max_tokens=REDUCE_MAX_TOKENS).split("Final summary:")[-1].strip()
     
-        results[label] = {
-
-            "label": label,
-
-            "num_reviews": len(texts),
-
-            "mini_summaries": mini_summaries,
-
-            "final_summary": final
-        }
+        results.extend (final)
+    final = format_as_bullets(results, max_chars=REDUCE_MAX_CHARS)
+    prompt = make_reduce_prompt(final)
+    final_summary = run_openai(prompt, client, max_tokens=REDUCE_MAX_TOKENS).split("Final summary:")[-1].strip()
+    print (final_summary)
     with open("/home/hqvu/Agent_analysis/data/clean/summaries_openai.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
-
-    makeReport (results, SCORES)
+    makeReport (filename, final_summary,  SCORES, total, percenPosi, percenCheat, percenFeature, percenProblem)
  
 def run_openai(prompt, client, max_tokens=220):
 
@@ -275,7 +338,4 @@ def make_map_prompt(bulleted):
 
         "Reviews:\n" + bulleted + "\n\nSummary:"
 
-    )
- 
-
-     
+    )                                                                              

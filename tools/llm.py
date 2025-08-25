@@ -36,6 +36,7 @@ def summarizeText(state: MessagesState):
     if isinstance(last_msg, AIMessage):
         filename = last_msg.content
         SCORES = last_msg.additional_kwargs.get("average_score")
+        total = last_msg.additional_kwargs.get("total_review")
     else:
         raise ValueError("Last message is not an AIMessage containing the JSON file path") 
     with open(filename, "r", encoding="utf-8") as f:
@@ -55,13 +56,15 @@ def summarizeText(state: MessagesState):
     labels = labelize(filename, classifier) 
     for item, label in zip(data, labels):
         item["label"] = label
+    filtered_data = [item for item in data if item["label"] != "off-topic joke"]
     with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(filtered_data, f, ensure_ascii=False, indent=2)
     return {
         "messages": [
                 {"role": "assistant",
                 "content": f"{filename}",
-                "additional_kwargs" : {"average_score": SCORES}
+                "additional_kwargs" : {"average_score": SCORES,
+                                       "total_review": total}
                 }
         ]
     }

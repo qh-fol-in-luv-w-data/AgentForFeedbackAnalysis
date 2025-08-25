@@ -32,6 +32,7 @@ def seedingFilter(state: MessagesState):
     if isinstance(last_msg, AIMessage):
         filename = last_msg.content  
         SCORES = last_msg.additional_kwargs.get("average_score")
+        total = last_msg.additional_kwargs.get("total_review")
     else:
         raise ValueError("Last message is not an AIMessage containing the path")
 
@@ -49,7 +50,8 @@ def seedingFilter(state: MessagesState):
         "messages": [
                 {"role": "assistant",
                 "content": f"{clean_output}",
-                "average_score": SCORES
+                "additional_kwargs" : {"average_score": SCORES,
+                                       "total_review": total}
                 }
         ]
     }
