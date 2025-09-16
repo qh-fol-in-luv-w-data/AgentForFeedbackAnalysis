@@ -1,0 +1,58 @@
+[
+  {
+    "content": "Hi Hi, I played the game, I liked it, bye.",
+    "score": 5,
+    "date": "2025-08-24 21:58:41 UTC",
+    "day_of_week": "Sun",
+    "process": "hi hi, i played the game, i liked it, bye.",
+    "label": "positive feedback"
+  },
+  {
+    "content": "glitch i think not on the last level it didnt let me win whenever i move i just died out of no where",
+    "score": 1,
+    "date": "2025-08-22 21:04:57 UTC",
+    "day_of_week": "Fri",
+    "process": "glitch i think not on the last level it didnt let me win whenever i move i just died out of no where",
+    "label": "game not working"
+  },
+  {
+    "content": "Perfect Makes me question my intelligence everytime",
+    "score": 5,
+    "date": "2025-08-22 02:19:16 UTC",
+    "day_of_week": "Fri",
+    "process": "perfect makes me question my intelligence everytime",
+    "label": "feature request"
+  },
+  {
+    "content": "I don’t have much to say It’s pretty cool, love the game:)",
+    "score": 5,
+    "date": "2025-08-21 04:15:01 UTC",
+    "day_of_week": "Thu",
+    "process": "i don’t have much to say it’s pretty cool, love the game:)",
+    "label": "positive feedback"
+  },
+  {
+    "content": "Game The real troll was all those adds",
+    "score": 1,
+    "date": "2025-08-20 22:54:49 UTC",
+    "day_of_week": "Wed",
+    "process": "game the real troll was all those adds",
+    "label": "game problem"
+  },
+  {
+    "content": "BEST TROLL GAME EVER I never thought I would say a troll game is good, but this isn’t good, it is the best. I literally started playing last night and already love it. It is fun, frustrating(in a good way), and challenging. Highly recommend this game.",
+    "score": 5,
+    "date": "2025-08-20 21:20:20 UTC",
+    "day_of_week": "Wed",
+    "process": "best troll game ever i never thought i would say a troll game is good, but this isn’t good, it is the best. i literally started playing last night and already love it. it is fun, frustrating(in a good way), and challenging. highly recommend this game.",
+    "label": "positive feedback"
+  },
+  {
+    "content": "Great fun Fun but challenging!",
+    "score": 5,
+    "date": "2025-08-18 08:23:15 UTC",
+    "day_of_week": "Mon",
+    "process": "great fun fun but challenging!",
+    "label": "positive feedback"
+  }
+]
